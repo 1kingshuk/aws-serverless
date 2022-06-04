@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  contract-service
+
+  Sample SAM Template for contract-service
+
+Globals:
+  Function:
+    Runtime: java11
+    MemorySize: 512
+    Timeout: 30
+    Environment:
+      Variables:
+        CONTRACT_DETAILS_TABLE: !Ref ContractDetailsTable
+
+Resources:
+  ContractDetailsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: contract_id
+        Type: Number
+  CreateContractFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: contract-service
+      Handler: com.aws.lambda.CreateContractLambda::createContract
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ContractDetailsTable
+      Events:
+        OrderEvents:
+          Type: Api
+          Properties:
+            Path: /contracts
+            Method: POST
+  GetContractsFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: contract-service
+      Handler: com.aws.lambda.GetContractsLambda::getContracts
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ContractDetailsTable
+      Events:
+        OrderEvents:
+          Type: Api
+          Properties:
+            Path: /contracts
+            Method: GET
+
+Outputs:
+  CreateContractAPI:
+    Description: "API Gateway endpoint to create contract"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/contracts"
+
